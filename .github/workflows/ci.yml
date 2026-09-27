@@ -82,9 +82,12 @@ jobs:
     # поэтому результат этого job не блокирует пайплайн.
     continue-on-error: true
     timeout-minutes: 45
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Dependency-Check
+      - name: Dependency-Check (with NVD API key)
+        if: env.NVD_API_KEY != ''
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: secure-api
@@ -95,6 +98,17 @@ jobs:
             --enableExperimental
             --exclude "**/venv/**"
             --nvdApiKey ${{ secrets.NVD_API_KEY }}
+      - name: Dependency-Check
+        if: env.NVD_API_KEY == ''
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: secure-api
+          path: .
+          format: HTML
+          out: reports
+          args: >
+            --enableExperimental
+            --exclude "**/venv/**"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
