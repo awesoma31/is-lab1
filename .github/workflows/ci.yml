@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -v
+
+  sast:
+    name: SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install bandit==1.8.6
+      - name: Bandit HTML report
+        run: |
+          mkdir -p reports
+          bandit -r . -x ./tests,./venv,./.venv -f html -o reports/bandit.html --exit-zero
+      - name: Bandit scan
+        shell: bash
+        run: |
+          bandit -r . -x ./tests,./venv,./.venv -f txt | tee reports/bandit.txt || status=$?
+          {
+            echo '## Bandit (SAST)'
+            echo '```'
+            cat reports/bandit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit ${status:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: reports/
+
+  sca:
+    name: SCA (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit==2.9.0
+      - name: pip-audit
+        run: |
+          mkdir -p reports
+          pip-audit -r requirements.txt --format markdown --output reports/pip-audit.md || status=$?
+          {
+            echo '## pip-audit (SCA)'
+            if [ -s reports/pip-audit.md ]; then cat reports/pip-audit.md; else echo 'No known vulnerabilities found'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit ${status:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-report
+          path: reports/
+
+  dependency-check:
+    name: SCA (OWASP Dependency-Check)
+    runs-on: ubuntu-latest
+    # Первая загрузка базы NVD без API-ключа может занимать очень долго,
+    # поэтому результат этого job не блокирует пайплайн.
+    continue-on-error: true
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: secure-api
+          path: .
+          format: HTML
+          out: reports
+          args: >
+            --enableExperimental
+            --exclude "**/venv/**"
+            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/
