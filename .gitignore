@@ -6,3 +6,5 @@ venv/
 *.db
 .pytest_cache/
 reports/
+.DS_Store
+*.zip

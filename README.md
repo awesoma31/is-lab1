@@ -146,9 +146,17 @@ curl http://127.0.0.1:5000/api/me -H "Authorization: Bearer $TOKEN"
 
 После обновления: `No known vulnerabilities found`.
 
-### Отчёты
+### Ложное срабатывание Dependency-Check
 
-<!-- Вставьте скриншоты из вкладки Actions -->
+OWASP Dependency-Check пометил `PyJWT 2.15.0` и `Flask-JWT-Extended 4.7.1` уязвимостью **CVE-2025-45770** (HIGH 7.0, «weak encryption»). Анализ показал, что это ложное срабатывание:
+
+- CVE описывает PHP-библиотеку [lcobucci/jwt](https://github.com/lcobucci/jwt) версий ≤ 5.4.3 — на неё ведут ссылки в записи [NVD](https://nvd.nist.gov/vuln/detail/CVE-2025-45770). У PyJWT (2.x) и Flask-JWT-Extended (4.x) версии 5.4.3 не существует.
+- Сопоставление сделано эвристически по общему CPE `cpe:2.3:a:jwt_project:jwt` с уверенностью **Low**.
+- Сама CVE имеет статус **DISPUTED**: длина ключа задаётся приложением, а не библиотекой. В проекте используется 256-битный HMAC-секрет.
+
+Находка исключена через [`dependency-check-suppressions.xml`](dependency-check-suppressions.xml) с обоснованием; исключение ограничено этим CVE и двумя пакетами. Отчёт до исключения — [`docs/dependency-check-report-before.html`](docs/dependency-check-report-before.html).
+
+### Отчёты
 
 **Bandit (SAST):**
 
@@ -164,6 +172,16 @@ curl http://127.0.0.1:5000/api/me -H "Authorization: Bearer $TOKEN"
 
 **Последний успешный запуск:** <!-- ссылка на run в Actions -->
 
+## Проверка через curl
+
+Доступ без токена запрещён (`401`):
+
+![curl без токена](docs/curl-no-token.png)
+
+Логин и доступ с токеном (`200`):
+
+![curl с токеном](docs/curl-with-token.png)
+
 ## Структура
 
 ```
@@ -172,5 +190,7 @@ curl http://127.0.0.1:5000/api/me -H "Authorization: Bearer $TOKEN"
 ├── tests/test_app.py         # тесты
 ├── requirements.txt          # зависимости (закреплённые версии)
 ├── requirements-dev.txt      # + pytest, bandit, pip-audit
+├── dependency-check-suppressions.xml  # обоснованные исключения SCA
+├── docs/                     # скриншоты и отчёты
 └── .github/workflows/ci.yml  # CI-пайплайн
 ```

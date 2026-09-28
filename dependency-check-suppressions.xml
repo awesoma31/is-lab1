@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes><![CDATA[
+        False positive. CVE-2025-45770 describes lcobucci/jwt (PHP library, versions <= 5.4.3),
+        see NVD references: https://github.com/lcobucci/jwt.
+        Matched to PyJWT / Flask-JWT-Extended only by the generic CPE cpe:2.3:a:jwt_project:jwt
+        with Low confidence. The CVE is also marked as DISPUTED: key length is chosen by the
+        application; this project uses a 256-bit HMAC secret.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:pypi/(pyjwt|flask-jwt-extended)@.*$</packageUrl>
+        <cve>CVE-2025-45770</cve>
+    </suppress>
+</suppressions>
