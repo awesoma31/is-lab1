@@ -170,7 +170,7 @@ OWASP Dependency-Check пометил `PyJWT 2.15.0` и `Flask-JWT-Extended 4.7.
 
 ![Dependency-Check](docs/dependency-check.png)
 
-**Последний успешный запуск:** <!-- ссылка на run в Actions -->
+**Последний успешный запуск:** https://github.com/awesoma31/is-lab1/actions/runs/36449795858
 
 ## Проверка через curl
 
